@@ -17,13 +17,11 @@ Renderer::Renderer() {
   VIDEO_MODE xmode = XVideoGetMode();
   height = xmode.height;
   width = xmode.width;
-  windowFlags = SDL_WINDOW_SHOWN;
 #else
   height = 480;
   width = 640;
-  windowFlags = SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE;
-  //renderFlags = SDL_RENDERER_PRESENTVSYNC|SDL_RENDERER_SOFTWARE;
 #endif
+
   overscanCompX = width * 0.075;
   overscanCompY = height * 0.075;
   menuItemCount = (height - (overscanCompY * 2)) / FONT_TEX_SIZE;
@@ -33,31 +31,14 @@ Renderer::Renderer() {
 
 Renderer::~Renderer() {
   if (background != nullptr) {
-    SDL_DestroyTexture(background);
-  }
-  if (renderer != nullptr) {
-    SDL_DestroyRenderer(renderer);
-  }
-  if (window != nullptr) {
-    SDL_DestroyWindow(window);
+    SDL_FreeSurface(background);
   }
 }
 
 int Renderer::init() {
-  window = SDL_CreateWindow("NevolutionX",
-                            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                            width, height, windowFlags);
-  if (window == nullptr) {
-    return 1;
-  }
-  renderer = SDL_CreateRenderer(window, -1, renderFlags);
-  if (renderer == nullptr) {
-    return 2;
-  }
-  SDL_SetRenderDrawBlendMode(getRenderer(), SDL_BLENDMODE_BLEND);
-  setDrawColor();
-  clear();
-  return 0;
+  pb_init();
+  pb_show_front_screen();
+  
 }
 
 int Renderer::init(const char* bgpath) {
@@ -82,9 +63,11 @@ int Renderer::init(const char* bgpath) {
   return ret;
 }
 
-int Renderer::clear() {
-  int ret = SDL_RenderClear(renderer);
-  return ret;
+void Renderer::clear() {
+  pb_wait_for_vbl();
+  pb_reset();
+  pb_target_back_buffer();  
+  while(pb_busy());
 }
 
 void Renderer::flip() {

@@ -11,9 +11,9 @@
 class Font {
 private:
   FC_Font *fcFont;
-  Renderer &renderer;
+  Renderer *renderer;
 public:
-  Font(Renderer &renderer, const char* path);
+  Font(Renderer *renderer, const char* path);
   ~Font();
 
   std::pair<float, float> draw(const std::string &str, std::pair<float, float> coordinates);

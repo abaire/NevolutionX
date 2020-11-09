@@ -42,7 +42,7 @@ int main(void) {
   if (init <= 1) {
     bool running = true;
 
-    // Open our GameController
+    // Open our GameControllers
     for (int i = 0; i < SDL_NumJoysticks(); ++i) {
       if (SDL_IsGameController(i)) {
         controllers[i] = SDL_GameControllerOpen(i);
@@ -68,7 +68,7 @@ int main(void) {
 
     // Load font
     // FIXME: Font path should be read from theme
-    Font f(r, HOME "vegur.ttf");
+    Font f(&r, HOME "vegur.ttf");
 
     Menu menu(config, r);
 

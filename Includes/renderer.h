@@ -4,8 +4,17 @@
 #include <vector>
 #include <SDL.h>
 
+#include <xgu/xgu.h>
+#include <xgu/xgux.h>
+
 int min(int lhs, int rhs);
 int max(int lhs, int rhs);
+
+typedef struct Vertex {
+    XguVec3 pos;
+    XguVec3 normal;
+    float texcoord[2];
+} Vertex;
 
 class Renderer {
 public:
@@ -17,7 +26,6 @@ public:
   int clear();
   void flip();
 
-  SDL_Renderer* getRenderer() {return renderer;}
   int getHeight() const {return height;}
 
   int setDrawColor(uint8_t r = 0x40, uint8_t g = 0x40,
@@ -32,11 +40,20 @@ public:
   void drawBackground();
 
 private:
-  SDL_Renderer *renderer = nullptr;
-  SDL_Window *window = nullptr;
-  SDL_Texture *background = nullptr;
-  Uint32 renderFlags = 0;
-  Uint32 windowFlags = 0;
+  SDL_Surface *background = nullptr;
+
+  XguVec4 v_obj_rot = {0,0,0,1};
+  XguVec4 v_obj_scale = {1,1,1,1};
+  XguVec4 v_obj_pos = {0,0,0,1};
+  XguVec4 v_cam_pos = {0,0,360,1};
+  XguVec4 v_cam_rot = {0,0,0,1};
+
+  Vertex bgVert[4] = {
+    { {{-1, -1,  0}}, {{-0,  0, -1}}, {    0,   0} },
+    { {{ 1, -1,  0}}, {{-0,  0, -1}}, { 1280,   0} },
+    { {{-1,  1,  0}}, {{-0,  0, -1}}, {    0, 720} },
+    { {{ 1,  1,  0}}, {{-0,  0, -1}}, { 1280, 720} }
+  };
 
   int height = 0;
   int width = 0;
