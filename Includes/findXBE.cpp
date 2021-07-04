@@ -4,6 +4,7 @@
 
 #ifdef NXDK
 #include <windows.h>
+#include <winnt.h>
 #include "xbe.h"
 #endif
 
@@ -32,30 +33,30 @@ int findXBE(std::string const& path, MenuXbe *list) {
       tmpFILE = fopen(tmp.c_str(), "rb");
       if (tmpFILE != nullptr) {
         size_t read_bytes = fread(xbeData, 1, SECTORSIZE, tmpFILE);
-        XBE *xbe = (XBE*)xbeData;
-        if (xbe->sizeOfHeaders > read_bytes) {
-          xbeData = static_cast<char*>(realloc(xbeData, xbe->sizeOfHeaders));
-          xbe = (XBE*)xbeData;
-          read_bytes += fread(&xbeData[read_bytes], 1, xbe->sizeOfHeaders - read_bytes, tmpFILE);
+        PXBE_FILE_HEADER xbe = (PXBE_FILE_HEADER)xbeData;
+        if (xbe->SizeOfHeaders > read_bytes) {
+          xbeData = static_cast<char*>(realloc(xbeData, xbe->SizeOfHeaders));
+          xbe = (PXBE_FILE_HEADER)xbeData;
+          read_bytes += fread(&xbeData[read_bytes], 1, xbe->SizeOfHeaders - read_bytes, tmpFILE);
         }
-        if(xbe->type != XBETYPEMAGIC ||
-           xbe->baseAddress != BASEADDRESS ||
-           xbe->baseAddress > xbe->certAddress ||
-           xbe->certAddress + 4 >= (xbe->baseAddress + xbe->sizeOfHeaders) ||
-           xbe->sizeOfHeaders > read_bytes) {
+        if(xbe->Magic != XBETYPEMAGIC ||
+           xbe->ImageBase != BASEADDRESS ||
+           xbe->ImageBase > (uint32_t)xbe->CertificateHeader ||
+           (uint32_t)xbe->CertificateHeader + 4 >= (xbe->ImageBase + xbe->SizeOfHeaders) ||
+           xbe->SizeOfHeaders > read_bytes) {
           continue;
         }
-        XBECert *xbeCert = (XBECert*)&xbeData[xbe->certAddress -
-                                              xbe->baseAddress];
+        PXBE_CERTIFICATE_HEADER xbeCert = (PXBE_CERTIFICATE_HEADER)&xbeData[(uint32_t)xbe->CertificateHeader -
+                                                                            xbe->ImageBase];
         memset(xbeName, 0x00, sizeof(xbeName));
         int offset = 0;
         while(offset < XBENAMESIZE) {
-          if (xbeCert->xbeName[offset] < 0x0100) {
-            sprintf(&xbeName[offset], "%c", (char)xbeCert->xbeName[offset]);
+          if (xbeCert->TitleName[offset] < 0x0100) {
+            sprintf(&xbeName[offset], "%c", (char)xbeCert->TitleName[offset]);
           } else {
             sprintf(&xbeName[offset], "%c", '?');
           }
-          if(xbeCert->xbeName[offset] == 0x0000) {
+          if(xbeCert->TitleName[offset] == 0x0000) {
             break;
           }
           ++offset;
