@@ -188,7 +188,8 @@ void from_json(nlohmann::json const& j, homescreenConfig& o) {
 }
 
 void to_json(nlohmann::json& j, Settings const& o) {
-  j = nlohmann::json{ { "ftp", nlohmann::json(o.ftp) },
+  j = nlohmann::json{ { "activeThemeDirectory", o.activeThemeDirectory },
+                      { "ftp", nlohmann::json(o.ftp) },
                       { "mount", nlohmann::json(o.mount) },
                       { "network", nlohmann::json(o.net) },
                       { "logging", nlohmann::json(o.logging) },
@@ -196,6 +197,9 @@ void to_json(nlohmann::json& j, Settings const& o) {
 }
 
 void from_json(nlohmann::json const& j, Settings& o) {
+  if (j.contains("activeThemeDirectory")) {
+    o.activeThemeDirectory = j["activeThemeDirectory"];
+  }
   if (j.contains("ftp")) {
     o.ftp = j["ftp"].get<ftpConfig>();
   }

@@ -104,7 +104,7 @@ void from_json(nlohmann::json const& j, homescreenConfig& o);
 
 class Settings {
 public:
-  Settings() = default;
+  std::string activeThemeDirectory{ "default" };
   netConfig net;
   ftpConfig ftp;
   mountConfig mount;
@@ -122,6 +122,7 @@ public:
 
   void setChanged();
   void storeToDisk();
+
   Settings settings;
   nlohmann::json menu;
 };
