@@ -12,6 +12,7 @@
 #include "sntpClient.h"
 #include "subAppRouter.h"
 #include "subsystems.h"
+#include "theme.h"
 #include "timeMenu.hpp"
 #include "timing.h"
 
@@ -29,6 +30,12 @@
 #define HOME "." SEPARATOR
 #endif
 
+static void initWithBackground(Renderer& r, Theme const& theme) {
+  auto const& imageSet = theme.getBackground();
+  std::string const& path = (r.getHeight() >= 720) ? imageSet.image720p
+                                                   : imageSet.image480p;
+  r.init(theme.getAbsolutePath(path));
+}
 
 int main(void) {
 #ifdef NXDK
@@ -44,6 +51,10 @@ int main(void) {
     shutdown_systems(init);
     return init;
   }
+
+  std::string themePath = "A:\\NeXThemes\\" + config.settings.activeThemeDirectory;
+  InfoLog::outputLine(InfoLog::INFO, "Loading theme from %s", themePath.c_str());
+  Theme activeTheme(themePath);
 
   NetworkManager networkManager(config);
 #ifdef NXDK
@@ -73,11 +84,10 @@ int main(void) {
 
   // Create render system
   Renderer r;
-  r.init(HOME);
+  initWithBackground(r, activeTheme);
 
   // Load font
-  // FIXME: Font path should be read from theme
-  Font f(r, HOME "vegur.ttf");
+  Font f(r, activeTheme.getAbsolutePath(activeTheme.getMenu().font).c_str());
 
   SubAppRouter& router = *SubAppRouter::getInstance();
 
