@@ -20,6 +20,7 @@ SRCS += \
 	$(INCDIR)/settingsMenu.cpp \
 	$(INCDIR)/subAppRouter.cpp \
 	$(INCDIR)/subsystems.cpp \
+	$(INCDIR)/theme.cpp \
 	$(INCDIR)/timeMenu.cpp \
 	$(INCDIR)/timing.cpp \
 	$(INCDIR)/videoMenu.cpp \
@@ -43,12 +44,17 @@ CFLAGS += -O2
 CXXFLAGS += -O2
 endif
 
-new_all: copy_resources all
-
 include $(NXDK_DIR)/Makefile
 
-copy_resources: $(OUTPUT_DIR)/config.json
-	@cp $(RESOURCEDIR)/480.png $(RESOURCEDIR)/720.png $(RESOURCEDIR)/vegur.ttf $(OUTPUT_DIR)
+RESOURCES = \
+	$(OUTPUT_DIR)/config.json \
+	$(patsubst $(CURDIR)/Resources/%,$(OUTPUT_DIR)/%,$(wildcard $(CURDIR)/Resources/NeXThemes/*))
+TARGET += $(RESOURCES)
+$(GEN_XISO): $(RESOURCES)
+
+$(OUTPUT_DIR)/NeXThemes/%: $(CURDIR)/Resources/NeXThemes/%
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE)cp -r '$<' '$@'
 
 $(OUTPUT_DIR)/config.json: $(CURDIR)/sampleconfig.json
 	@mkdir -p $(OUTPUT_DIR)
