@@ -1,6 +1,11 @@
 #include "xbeLauncher.h"
 #include <hal/video.h>
 #include <hal/xbox.h>
+#include <xboxkrnl/xboxkrnl.h>
+
+void XBELauncher::shutdown() {
+  HalInitiateShutdown();
+}
 
 void XBELauncher::exitToDashboard() {
   showLaunchImage();
