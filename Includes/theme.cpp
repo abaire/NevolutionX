@@ -36,7 +36,7 @@ void from_json(nlohmann::json const& j, Theme::MenuTheme& o) {
     o.font = j["font"];
   }
   if (j.contains("font_color")) {
-    o.font = j["font_color"];
+    o.fontColor = j["font_color"];
   }
 }
 
