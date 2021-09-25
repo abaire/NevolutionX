@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <fstream>
 #include <memory>
 #include <vector>
 #include "config.hpp"
@@ -28,11 +29,23 @@
 #define HOME "." SEPARATOR
 #endif
 
+#undef write
 
 int main(void) {
 #ifdef NXDK
   mountHomeDir('A');
 #endif
+
+
+  {
+    char* previousFB = (char*)AvGetSavedDataAddress();
+    SIZE_T previousFBSize = MmQueryAllocationSize(previousFB);
+    std::ofstream outputFile("A:\\fbdump.bin");
+    outputFile.write(previousFB, previousFBSize);
+    InfoLog::outputLine("%X", previousFB);
+    InfoLog::outputLine("%X", *(DWORD*)previousFB);
+  }
+
   Config config;
   std::map<int, SDL_GameController*> controllers;
 
