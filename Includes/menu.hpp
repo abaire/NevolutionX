@@ -91,8 +91,8 @@ private:
 class MenuLaunch : public MenuItem {
 public:
   MenuLaunch(std::string const& label, std::string const& path);
-  ~MenuLaunch();
-  void execute(Menu*);
+  ~MenuLaunch() override;
+  void execute(Menu*) override;
 
 protected:
   std::string path;

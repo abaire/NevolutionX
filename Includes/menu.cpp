@@ -2,8 +2,10 @@
 #include "3rdparty/NaturalSort/natural_sort.hpp"
 #include "infoLog.h"
 #include "settingsMenu.hpp"
+#include "xbeLauncher.h"
 #include "xbeScanner.h"
 #ifdef NXDK
+#include <hal/video.h>
 #include <hal/xbox.h>
 #endif
 
@@ -297,7 +299,7 @@ MenuLaunch::~MenuLaunch() {
 void MenuLaunch::execute(Menu*) {
   InfoLog::outputLine("Launching xbe %s\n", this->path.c_str());
 #ifdef NXDK
-  XLaunchXBE(const_cast<char*>(this->path.c_str()));
+  XBELauncher::launch(path);
 #endif
 }
 
@@ -334,7 +336,7 @@ Menu::Menu(const Config& config, Renderer& renderer) :
       this->rootNode.addNode(newNode);
     } else if (!static_cast<std::string>(e["type"]).compare("reboot")) {
       std::shared_ptr<MenuExec> newNode = std::make_shared<MenuExec>(
-          e["label"], [](Menu*) { exit(0); });
+          e["label"], [](Menu*) { XBELauncher::exitToDashboard(); });
       this->rootNode.addNode(newNode);
     } else if (!static_cast<std::string>(e["type"]).compare("settings")) {
       std::shared_ptr<MenuNode> newNode = std::make_shared<settingsMenu>(currentMenu,
