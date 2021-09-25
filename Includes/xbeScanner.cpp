@@ -1,6 +1,9 @@
 #include "xbeScanner.h"
+
+#include <chrono>
 #include <windows.h>
 #include <winnt.h>
+
 #include "infoLog.h"
 #include "timing.h"
 
@@ -63,7 +66,11 @@ void XBEScanner::threadMain(XBEScanner* scanner) {
 
     std::string const& path = task.first;
     std::vector<XBEInfo> xbes;
+    auto scanStart = std::chrono::steady_clock::now();
     bool succeeded = scan(path, xbes);
+    auto scanDuration = millisSince(scanStart);
+    InfoLog::outputLine("Scanning %s %s in %lld ms (%d found)", path.c_str(),
+                        succeeded ? "succeeded" : "failed", scanDuration, xbes.size());
 
     task.second(succeeded, xbes);
   }
