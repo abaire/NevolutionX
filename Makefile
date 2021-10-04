@@ -29,6 +29,7 @@ SRCS += \
 	$(SRCDIR)/wipeCache.cpp \
 	$(SRCDIR)/xbeLauncher.cpp \
 	$(SRCDIR)/xbeScanner.cpp \
+	$(CURDIR)/nxdk-sdl-gpu/nxdkSDLGPU.cpp \
 	$(CURDIR)/3rdparty/SDL_FontCache/SDL_FontCache.c
 
 NXDK_DIR ?= $(CURDIR)/../nxdk
@@ -39,19 +40,28 @@ NXDK_DISABLE_AUTOMOUNT_D = y
 
 GEN_XISO = ${XBE_TITLE}.iso
 
-CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -Wall -Wextra -std=gnu++11
-CFLAGS   += -std=gnu11
+CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -I$(SDL_GPU_DIR)/include -I$(PBGL_DIR)/include -Wall -Wextra -std=gnu++11 -DFC_USE_SDL_GPU
+CFLAGS   += -I$(SDL_GPU_DIR)/include -std=gnu11 -DFC_USE_SDL_GPU
 
 ifneq ($(DEBUG),y)
 CFLAGS += -O2
 CXXFLAGS += -O2
 endif
 
+CLEANRULES = clean-resources clean-gl
 include $(NXDK_DIR)/Makefile
+
+
+override PBGL_DIR := 3rdparty/pbgl
+include 3rdparty/pbgl/Makefile
+
+override SDL_GPU_DIR := 3rdparty/sdl-gpu
+include nxdk-sdl-gpu/Makefile.inc
 
 RESOURCES = \
 	$(OUTPUT_DIR)/config.json \
 	$(patsubst $(CURDIR)/Resources/%,$(OUTPUT_DIR)/%,$(wildcard $(CURDIR)/Resources/NeXThemes/*))
+
 TARGET += $(RESOURCES)
 $(GEN_XISO): $(RESOURCES)
 
@@ -62,3 +72,10 @@ $(OUTPUT_DIR)/NeXThemes/%: $(CURDIR)/Resources/NeXThemes/%
 $(OUTPUT_DIR)/config.json: $(CURDIR)/sampleconfig.json
 	@mkdir -p $(OUTPUT_DIR)
 	cp $(CURDIR)/sampleconfig.json $(OUTPUT_DIR)/config.json
+
+.PHONY: clean-resources
+clean-resources:
+	$(VE)rm -rf $(OUTPUT_DIR)/NeXThemes
+
+.PHONY: clean-gl
+clean-gl: clean-sdl-gpu clean-pbgl
