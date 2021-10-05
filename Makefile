@@ -37,8 +37,8 @@ NXDK_DISABLE_AUTOMOUNT_D = y
 
 GEN_XISO = ${XBE_TITLE}.iso
 
-CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -Wall -Wextra -std=gnu++11
-CFLAGS   += -std=gnu11
+CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -I$(SDL_GPU_DIR)/include -I$(PBGL_DIR)/include -Wall -Wextra -std=gnu++11 -DSCANNER_THREADED
+CFLAGS   += -I$(SDL_GPU_DIR)/include -std=gnu11 -DSCANNER_THREADED
 
 ifneq ($(DEBUG),y)
 CFLAGS += -O2

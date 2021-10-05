@@ -44,6 +44,7 @@ private:
   class QueueItem {
   public:
     QueueItem(std::string p, Callback c);
+    QueueItem() = default;
     ~QueueItem();
 
     void scan();
