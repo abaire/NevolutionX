@@ -35,6 +35,7 @@ add_executable(${PROJECT_NAME}
   Includes/sntpClient.cpp
   Includes/subAppRouter.cpp
   Includes/subsystems.cpp
+  Includes/theme.cpp
   Includes/timing.cpp
   Includes/timeMenu.cpp
   Includes/videoMenu.cpp
