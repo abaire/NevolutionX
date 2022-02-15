@@ -63,7 +63,15 @@ void XBEScanner::threadMain(XBEScanner* scanner) {
       scanner->queue.pop();
     }
 
-    task.scan();
+    std::string const& path = task.first;
+    std::vector<XBEInfo> xbes;
+    auto scanStart = std::chrono::steady_clock::now();
+    bool succeeded = scan(path, xbes);
+    auto scanDuration = millisSince(scanStart);
+    InfoLog::outputLine("Scanning %s %s in %lld ms (%d found)\n", path.c_str(),
+                        succeeded ? "succeeded" : "failed", scanDuration, xbes.size());
+
+    task.second(succeeded, xbes);
   }
 }
 #endif
