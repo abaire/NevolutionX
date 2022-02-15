@@ -40,13 +40,15 @@ public:
   // XBEInfo instances for any XBEs that were discovered.
   static void scanPath(std::string const& path, Callback&& callback);
 
+  static void rebuildCaches();
+
 private:
   class QueueItem {
   public:
     QueueItem(std::string p, Callback c);
     ~QueueItem();
 
-    void scan();
+    void scan(bool allowCache = true);
 
     std::chrono::steady_clock::time_point scanStart;
     long long scanDuration{ 0 };
@@ -78,11 +80,12 @@ private:
 
   static XBEScanner* getInstance();
 
-#if SCANNER_THREADED
   void addJob(std::string const& path, const Callback& callback);
-#endif
+  void rescan();
 
   static XBEScanner* singleton;
+
+  std::list<std::string> paths;
 
 #ifdef SCANNER_THREADED
   std::atomic<bool> running;
