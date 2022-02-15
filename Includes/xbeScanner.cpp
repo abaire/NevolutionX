@@ -20,7 +20,7 @@ XBEScanner* XBEScanner::getInstance() {
   return XBEScanner::singleton;
 }
 
-#if SCANNER_THREADED
+#ifdef SCANNER_THREADED
 XBEScanner::XBEScanner() : running(true) {
   scannerThread = std::thread(threadMain, this);
 }
@@ -35,21 +35,42 @@ XBEScanner::~XBEScanner() {
 #endif
 
 void XBEScanner::scanPath(const std::string& path, Callback&& callback) {
-#if SCANNER_THREADED
   XBEScanner::getInstance()->addJob(path, callback);
-#else
-  auto job = QueueItem(path, callback);
-  job.scan();
-#endif
 }
 
-#if SCANNER_THREADED
+#ifndef SCANNER_THREADED
+void XBEScanner::rebuildCaches() {
+  XBEScanner::getInstance()->rescan();
+}
+#endif
+
 void XBEScanner::addJob(std::string const& path, const Callback& callback) {
+  paths.push_back(path);
+
+#ifdef SCANNER_THREADED
   std::lock_guard<std::mutex> lock(queueMutex);
   queue.emplace(path, callback);
   jobPending.notify_one();
+#else
+  QueueItem item(path, callback);
+  item.scan();
+#endif
 }
 
+void XBEScanner::rescan() {
+  for (const auto& path: paths) {
+#ifdef SCANNER_THREADED
+#error "IMPLEMENT ME"
+#else
+    auto null_callback = [](bool, std::list<XBEInfo> const&, long long) {
+    };
+    QueueItem item(path, null_callback);
+    item.scan(false);
+#endif
+  }
+}
+
+#ifdef SCANNER_THREADED
 void XBEScanner::threadMain(XBEScanner* scanner) {
   while (scanner->running) {
     QueueItem task;
@@ -89,8 +110,141 @@ XBEScanner::QueueItem::~QueueItem() {
 #endif
 }
 
-void XBEScanner::QueueItem::scan() {
+#define MAX_FILE_PATH_SIZE 248
+static void ensureFolderExists(const std::string& folder_path) {
+  if (folder_path.length() > MAX_FILE_PATH_SIZE) {
+    assert(!"Folder Path is too long.");
+  }
+
+  char buffer[MAX_FILE_PATH_SIZE + 1] = { 0 };
+  const char* path_start = folder_path.c_str();
+  const char* slash = strchr(path_start, '\\');
+  slash = strchr(slash + 1, '\\');
+
+  while (slash) {
+    strncpy(buffer, path_start, slash - path_start);
+    if (!CreateDirectory(buffer, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
+      assert(!"Failed to create output directory.");
+    }
+
+    slash = strchr(slash + 1, '\\');
+  }
+
+  // Handle case where there was no trailing slash.
+  if (!CreateDirectory(path_start, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
+    assert(!"Failed to create output directory.");
+  }
+}
+
+static void writeCacheFile(const std::string& cache_file,
+                           const std::list<XBEScanner::XBEInfo>& results) {
+
+  FILE* fp = fopen(cache_file.c_str(), "w");
+  if (!fp) {
+    InfoLog::outputLine(InfoLog::INFO, "Failed to create cache file '%s'",
+                        cache_file.c_str());
+    return;
+  }
+
+#define VERIFY_WRITE() \
+  if (written != 1) { \
+    InfoLog::outputLine(InfoLog::INFO, "Failed to write cache file '%s'", \
+                        cache_file.c_str()); \
+    fclose(fp); \
+    DeleteFile(cache_file.c_str()); \
+    return; \
+  }
+
+  uint32_t num_entries = results.size();
+  uint32_t written = fwrite(&num_entries, sizeof(num_entries), 1, fp);
+  VERIFY_WRITE()
+
+  for (const auto& result: results) {
+    uint32_t len = result.name.size();
+    written = fwrite(&len, sizeof(len), 1, fp);
+    VERIFY_WRITE()
+
+    written = fwrite(result.name.c_str(), len, 1, fp);
+    VERIFY_WRITE()
+
+    len = result.path.size();
+    written = fwrite(&len, sizeof(len), 1, fp);
+    VERIFY_WRITE()
+
+    written = fwrite(result.path.c_str(), len, 1, fp);
+    VERIFY_WRITE()
+  }
+
+#undef VERIFY_WRITE
+
+  fclose(fp);
+}
+
+static bool readCacheFile(const std::string& cache_file,
+                          std::list<XBEScanner::XBEInfo>& results) {
+  FILE* fp = fopen(cache_file.c_str(), "r");
+  if (!fp) {
+    return false;
+  }
+
+#define VERIFY_READ() \
+  if (num_read != 1) { \
+    InfoLog::outputLine(InfoLog::INFO, "Failed to read cache file '%s'", \
+                        cache_file.c_str()); \
+    fclose(fp); \
+    return false; \
+  }
+
+  uint32_t num_entries;
+  uint32_t num_read = fread(&num_entries, sizeof(num_entries), 1, fp);
+  VERIFY_READ()
+
+  results.clear();
+  for (uint32_t i = 0; i < num_entries; ++i) {
+    uint32_t len;
+    num_read = fread(&len, sizeof(len), 1, fp);
+    VERIFY_READ()
+
+    std::string name;
+    name.reserve(len);
+    num_read = fread(name.data(), len, 1, fp);
+    VERIFY_READ()
+
+    num_read = fread(&len, sizeof(len), 1, fp);
+    VERIFY_READ()
+
+    std::string path;
+    name.reserve(len);
+    num_read = fread(path.data(), len, 1, fp);
+    VERIFY_READ()
+
+    results.emplace_back(name, path);
+  }
+
+  fclose(fp);
+
+  return true;
+}
+
+static const char* cache_directory = "X:\\NeXCache";
+
+void XBEScanner::QueueItem::scan(bool allowCache) {
 #ifdef NXDK
+  std::string cache_file_name = path;
+  std::replace(cache_file_name.begin(), cache_file_name.end(), '\\', '_');
+  std::replace(cache_file_name.begin(), cache_file_name.end(), ':', '_');
+  std::string cache_file_path = cache_directory;
+  cache_file_path += "\\";
+  cache_file_path += cache_file_name + ".scancache";
+  ensureFolderExists(cache_directory);
+
+  if (allowCache) {
+    if (readCacheFile(cache_file_path, results)) {
+      callback(true, results, 0);
+      return;
+    }
+  }
+
   if (dirHandle == INVALID_HANDLE_VALUE) {
     InfoLog::outputLine(InfoLog::INFO, "Starting scan of %s", path.c_str());
     results.clear();
@@ -111,6 +265,9 @@ void XBEScanner::QueueItem::scan() {
 
   CloseHandle(dirHandle);
   dirHandle = INVALID_HANDLE_VALUE;
+
+  writeCacheFile(cache_file_path, results);
+
   callback(true, results, millisSince(scanStart));
 #endif
 }

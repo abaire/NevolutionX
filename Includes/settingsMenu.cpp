@@ -70,5 +70,6 @@ void settingsMenu::init() {
   addNode(std::make_shared<TimeMenu>(this, "Timezone select"));
   addNode(std::make_shared<logViewerMenu>(this, "Log viewer"));
   addNode(std::make_shared<MenuExec>("Wipe cache partitions", [](Menu*) { wipe_cache(); }));
-  ;
+  addNode(std::make_shared<MenuExec>("Scan for programs",
+                                     [](Menu*) { XBEScanner::rebuildCaches(); }));
 }
