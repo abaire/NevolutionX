@@ -37,10 +37,13 @@ void mountHomeDir(const char Letter) {
 int init_systems(const Config& config) {
 #ifdef NXDK
   VIDEO_MODE xmode;
-  void* p = NULL;
-  while (XVideoListModes(&xmode, 0, 0, &p)) {
+  void* position = NULL;
+  while (XVideoListModes(&xmode, 0, 0, &position)) {
   }
-  XVideoSetMode(xmode.width, xmode.height, xmode.bpp, xmode.refresh);
+  // TODO: On 1.6 hardware using 720x480 widescreen ends up triggering an exception on zeta
+  // buffer size.
+  XVideoSetMode(640, 480, 32, 60);
+  //  XVideoSetMode(xmode.width, xmode.height, xmode.bpp, xmode.refresh);
   xmode = XVideoGetMode();
   InfoLog::outputLine(InfoLog::DEBUG, "Video set to %dx%d %dbpp @%dHz\n", xmode.width,
                       xmode.height, xmode.bpp, xmode.refresh);

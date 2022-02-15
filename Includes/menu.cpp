@@ -349,7 +349,7 @@ Menu::Menu(const Config& config, Renderer& renderer) :
       this->rootNode.addNode(newNode);
     } else if (!static_cast<std::string>(e["type"]).compare("shutdown")) {
       std::shared_ptr<MenuExec> newNode = std::make_shared<MenuExec>(
-          e["label"], [](Menu*) { XBELauncher::shutdown(); });
+          e["label"], [](Menu*) { XBELauncher::powerOff(); });
       this->rootNode.addNode(newNode);
     } else if (!static_cast<std::string>(e["type"]).compare("settings")) {
       std::shared_ptr<MenuNode> newNode = std::make_shared<settingsMenu>(currentMenu,

@@ -54,7 +54,7 @@ int main(void) {
   }
 
   std::string themePath = "A:\\NeXThemes\\" + config.settings.activeThemeDirectory;
-  InfoLog::outputLine(InfoLog::INFO, "Loading theme from %s", themePath.c_str());
+  InfoLog::outputLine(InfoLog::INFO, "Loading theme from %s\n", themePath.c_str());
   Theme activeTheme(themePath);
 
   NetworkManager networkManager(config);

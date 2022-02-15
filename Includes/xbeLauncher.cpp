@@ -6,7 +6,7 @@
 #include <xboxkrnl/xboxkrnl.h>
 #endif
 
-void XBELauncher::shutdown() {
+void XBELauncher::powerOff() {
 #ifdef NXDK
   HalInitiateShutdown();
 #endif

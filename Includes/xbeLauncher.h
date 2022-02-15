@@ -7,7 +7,7 @@
 class XBELauncher {
 public:
   // Powers down the XBOX. Should not return.
-  static void shutdown();
+  static void powerOff();
 
   // Returns to the dashboard. Should not return.
   static void exitToDashboard();

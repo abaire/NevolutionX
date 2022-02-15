@@ -48,6 +48,11 @@ CFLAGS += -O2
 CXXFLAGS += -O2
 endif
 
+PBKIT_DEBUG ?= n
+ifeq ($(PBKIT_DEBUG),y)
+NXDK_CFLAGS += -DDBG
+endif
+
 CLEANRULES = clean-resources clean-gl
 include $(NXDK_DIR)/Makefile
 
