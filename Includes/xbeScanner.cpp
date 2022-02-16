@@ -1,5 +1,6 @@
 #include "xbeScanner.h"
 #include <chrono>
+#include <fstream>
 #ifdef NXDK
 #include <windows.h>
 #include <winnt.h>
@@ -139,94 +140,41 @@ static void ensureFolderExists(const std::string& folder_path) {
 static void writeCacheFile(const std::string& cache_file,
                            const std::list<XBEScanner::XBEInfo>& results) {
 
-  FILE* fp = fopen(cache_file.c_str(), "w");
-  if (!fp) {
-    InfoLog::outputLine(InfoLog::INFO, "Failed to create cache file '%s'",
-                        cache_file.c_str());
-    return;
-  }
-
-#define VERIFY_WRITE() \
-  if (written != 1) { \
-    InfoLog::outputLine(InfoLog::INFO, "Failed to write cache file '%s'", \
-                        cache_file.c_str()); \
-    fclose(fp); \
-    DeleteFile(cache_file.c_str()); \
-    return; \
-  }
-
-  uint32_t num_entries = results.size();
-  uint32_t written = fwrite(&num_entries, sizeof(num_entries), 1, fp);
-  VERIFY_WRITE()
+  std::ofstream out(cache_file);
 
   for (const auto& result: results) {
-    uint32_t len = result.name.size();
-    written = fwrite(&len, sizeof(len), 1, fp);
-    VERIFY_WRITE()
-
-    written = fwrite(result.name.c_str(), len, 1, fp);
-    VERIFY_WRITE()
-
-    len = result.path.size();
-    written = fwrite(&len, sizeof(len), 1, fp);
-    VERIFY_WRITE()
-
-    written = fwrite(result.path.c_str(), len, 1, fp);
-    VERIFY_WRITE()
+    out << result.name << std::endl;
+    out << result.path << std::endl;
   }
-
-#undef VERIFY_WRITE
-
-  fclose(fp);
 }
 
 static bool readCacheFile(const std::string& cache_file,
                           std::list<XBEScanner::XBEInfo>& results) {
-  FILE* fp = fopen(cache_file.c_str(), "r");
-  if (!fp) {
-    return false;
-  }
+  std::ifstream infile(cache_file);
 
-#define VERIFY_READ() \
-  if (num_read != 1) { \
-    InfoLog::outputLine(InfoLog::INFO, "Failed to read cache file '%s'", \
-                        cache_file.c_str()); \
-    fclose(fp); \
-    return false; \
-  }
-
-  uint32_t num_entries;
-  uint32_t num_read = fread(&num_entries, sizeof(num_entries), 1, fp);
-  VERIFY_READ()
-
-  results.clear();
-  for (uint32_t i = 0; i < num_entries; ++i) {
-    uint32_t len;
-    num_read = fread(&len, sizeof(len), 1, fp);
-    VERIFY_READ()
-
-    std::string name;
-    name.reserve(len);
-    num_read = fread(name.data(), len, 1, fp);
-    VERIFY_READ()
-
-    num_read = fread(&len, sizeof(len), 1, fp);
-    VERIFY_READ()
-
+  uint32_t line = 1;
+  std::string name;
+  while (std::getline(infile, name)) {
+    ++line;
     std::string path;
-    name.reserve(len);
-    num_read = fread(path.data(), len, 1, fp);
-    VERIFY_READ()
+    if (!std::getline(infile, path)) {
+      InfoLog::outputLine(InfoLog::INFO,
+                          "Failed to read cache file '%s', missing path at line %d",
+                          cache_file.c_str(), line);
+
+      return false;
+    }
+    ++line;
 
     results.emplace_back(name, path);
   }
 
-  fclose(fp);
-
+  InfoLog::outputLine(InfoLog::INFO, "Restored cache from %s. %d items", cache_file.c_str(),
+                      results.size());
   return true;
 }
 
-static const char* cache_directory = "X:\\NeXCache";
+static const char* cache_directory = "C:\\NeXCache";
 
 void XBEScanner::QueueItem::scan(bool allowCache) {
 #ifdef NXDK
