@@ -39,9 +39,13 @@ void mountHomeDir(const char Letter) {
 int init_systems(const Config& config) {
 #ifdef NXDK
   VIDEO_MODE xmode;
-  void* p = NULL;
-  while (XVideoListModes(&xmode, 0, 0, &p)) {
+  {
+    void* p = NULL;
+    while (XVideoListModes(&xmode, 0, 0, &p)) {
+    }
   }
+  xmode.width = 640;
+  xmode.height = 480;
   xmode.bpp = 16;
   XVideoSetMode(xmode.width, xmode.height, xmode.bpp, xmode.refresh);
   xmode = XVideoGetMode();
@@ -79,7 +83,34 @@ int init_systems(const Config& config) {
   }
 
   pb_set_color_format(NV097_SET_SURFACE_FORMAT_COLOR_LE_R5G6B5, false);
-  int status = pbgl_init(GL_TRUE);
+  int status = pb_init();
+  if (status) {
+    InfoLog::outputLine(InfoLog::ERROR, "pb_init error: %d", status);
+    return 5;
+  }
+
+  GLuint* p = pb_begin();
+
+#define SET_MASK(mask, val) (((val) << (__builtin_ffs(mask) - 1)) & (mask))
+  uint32_t value =
+      SET_MASK(NV097_SET_SURFACE_FORMAT_COLOR, NV097_SET_SURFACE_FORMAT_COLOR_LE_R5G6B5)
+      | SET_MASK(NV097_SET_SURFACE_FORMAT_ZETA, NV097_SET_SURFACE_FORMAT_ZETA_Z16)
+      | SET_MASK(NV097_SET_SURFACE_FORMAT_ANTI_ALIASING,
+                 NV097_SET_SURFACE_FORMAT_ANTI_ALIASING_CENTER_1)
+      | SET_MASK(NV097_SET_SURFACE_FORMAT_TYPE, NV097_SET_SURFACE_FORMAT_TYPE_PITCH);
+
+  p = pb_push1(p, NV097_SET_SURFACE_FORMAT, value);
+  p = pb_push1(p, NV097_SET_SURFACE_CLIP_HORIZONTAL, (pb_back_buffer_width() << 16));
+  p = pb_push1(p, NV097_SET_SURFACE_CLIP_VERTICAL, (pb_back_buffer_height() << 16));
+
+  p = pb_push1(p, NV097_SET_CLEAR_RECT_HORIZONTAL, ((pb_back_buffer_width() - 1) << 16));
+  p = pb_push1(p, NV097_SET_CLEAR_RECT_VERTICAL, ((pb_back_buffer_height() - 1) << 16));
+  p = pb_push1(p, NV097_SET_COLOR_CLEAR_VALUE, 0xFFFFFFFF);
+  p = pb_push1(p, NV097_SET_ZSTENCIL_CLEAR_VALUE, 0xFFFF);
+  p = pb_push1(p, NV097_CLEAR_SURFACE, NV097_CLEAR_SURFACE_Z);
+  pb_end(p);
+
+  status = pbgl_init(false);
   if (status) {
     InfoLog::outputLine(InfoLog::ERROR, "pbgl_init error: %d", status);
     return 4;

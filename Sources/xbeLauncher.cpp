@@ -14,8 +14,11 @@ void XBELauncher::shutdown() {
 
 void XBELauncher::exitToDashboard() {
   showLaunchImage();
-  // TODO: Switch to XLaunchXBE(nullptr) if XboxDev/nxdk#501 is merged.
+#ifdef NXDK
+  XLaunchXBE(nullptr);
+#else
   exit(0);
+#endif
 }
 
 void XBELauncher::launch(std::string const& xbePath) {
@@ -31,6 +34,16 @@ void XBELauncher::showLaunchImage() {
 
   // TODO(XboxDev/nxdk#507): Display launch image instead when framebuffer can be persisted.
   unsigned char* fb = XVideoGetFB();
+
+  //  unsigned char* framebufferMemory = (unsigned char*)MmAllocateContiguousMemoryEx(
+  //      totalSize, 0x00000000, 0x7FFFFFFF, 0x1000, PAGE_READWRITE | PAGE_WRITECOMBINE);
+  //  memcpy(framebufferMemory, &surface, sizeof(surface));
+  //  unsigned char* fb = XVideoGetFB();
+  //
+  //  memcpy(framebufferMemory + sizeof(surface), fb, screenSize);
+  //  MmPersistContiguousMemory(framebufferMemory, totalSize, TRUE);
+  AvSetSavedDataAddress(nullptr);
+
   memset(fb, 0, mode.width * mode.height * (mode.bpp >> 3));
   XVideoFlushFB();
   XVideoSetVideoEnable(FALSE);
