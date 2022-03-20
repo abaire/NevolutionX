@@ -3,6 +3,7 @@
 #ifdef NXDK
 #include <hal/video.h>
 #include <hal/xbox.h>
+#include <stdio.h>
 #include <xboxkrnl/xboxkrnl.h>
 #endif
 
@@ -32,20 +33,30 @@ void XBELauncher::showLaunchImage() {
 #ifdef NXDK
   VIDEO_MODE mode = XVideoGetMode();
 
-  // TODO(XboxDev/nxdk#507): Display launch image instead when framebuffer can be persisted.
-  unsigned char* fb = XVideoGetFB();
+  FILE* fp = fopen("A:\\fbdump.bin", "rb");
+  if (!fp) {
+    return;
+  }
 
-  //  unsigned char* framebufferMemory = (unsigned char*)MmAllocateContiguousMemoryEx(
-  //      totalSize, 0x00000000, 0x7FFFFFFF, 0x1000, PAGE_READWRITE | PAGE_WRITECOMBINE);
-  //  memcpy(framebufferMemory, &surface, sizeof(surface));
-  //  unsigned char* fb = XVideoGetFB();
-  //
-  //  memcpy(framebufferMemory + sizeof(surface), fb, screenSize);
-  //  MmPersistContiguousMemory(framebufferMemory, totalSize, TRUE);
-  AvSetSavedDataAddress(nullptr);
+  fseek(fp, 0, SEEK_END);
+  long file_size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
 
-  memset(fb, 0, mode.width * mode.height * (mode.bpp >> 3));
+  auto framebufferMemory = (uint8_t*)MmAllocateContiguousMemoryEx(
+      file_size, 0x00000000, 0x7FFFFFFF, 0x1000, PAGE_READWRITE | PAGE_WRITECOMBINE);
+
+  long bytes_read = fread(framebufferMemory, 1, file_size, fp);
+  if (bytes_read != file_size) {
+    MmFreeContiguousMemory(framebufferMemory);
+    fclose(fp);
+    return;
+  }
+  fclose(fp);
+
+  MmPersistContiguousMemory(framebufferMemory, file_size, TRUE);
+  AvSetSavedDataAddress(framebufferMemory);
+
   XVideoFlushFB();
-  XVideoSetVideoEnable(FALSE);
+//  XVideoSetVideoEnable(FALSE);
 #endif
 }
