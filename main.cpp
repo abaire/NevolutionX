@@ -35,7 +35,8 @@ static void initWithBackground(Renderer& r, Theme const& theme) {
   auto const& imageSet = theme.getBackground();
   std::string const& path = (r.getHeight() >= 720) ? imageSet.image720p
                                                    : imageSet.image480p;
-  r.init(theme.getAbsolutePath(path));
+  std::string backgroundImagePath = theme.getAbsolutePath(path);
+  r.init(backgroundImagePath);
 }
 
 int main(void) {
@@ -98,6 +99,7 @@ int main(void) {
   std::shared_ptr<MenuNode> lang = nullptr;
   std::shared_ptr<MenuNode> timeZone = nullptr;
 
+  r.clear();
   r.drawBackground();
   r.flip();
 
