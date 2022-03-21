@@ -7,6 +7,10 @@
 #include <nxdk/mount.h>
 #include <nxdk/path.h>
 #include <pbkit/pbkit.h>
+
+#ifdef FC_USE_SDL_GPU
+#include "pbkit_sdl_gpu.h"
+#endif
 #endif
 
 #include <SDL.h>
@@ -67,6 +71,10 @@ int init_systems(const Config& config) {
   if (!nxMountDrive('D', "\\Device\\CdRom0")) {
     InfoLog::outputLine(InfoLog::ERROR, "Mounting warning: Could not mount DVD drive\n");
   }
+
+#ifdef FC_USE_SDL_GPU
+  PBKitSDLGPUInit();
+#endif
 #endif
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     InfoLog::outputLine(InfoLog::ERROR, "SDL_Init error: %s", SDL_GetError());
