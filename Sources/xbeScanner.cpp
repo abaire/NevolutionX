@@ -46,14 +46,18 @@ void XBEScanner::rebuildCaches() {
 #endif
 
 void XBEScanner::addJob(std::string const& path, const Callback& callback) {
-  paths.push_back(path);
+  std::string suffixed_path = path;
+  if (suffixed_path.back() != '\\') {
+    suffixed_path += "\\";
+  }
+  paths.push_back(suffixed_path);
 
 #ifdef SCANNER_THREADED
   std::lock_guard<std::mutex> lock(queueMutex);
-  queue.emplace(path, callback);
+  queue.emplace(suffixed_path, callback);
   jobPending.notify_one();
 #else
-  QueueItem item(path, callback);
+  QueueItem item(suffixed_path, callback);
   item.scan();
 #endif
 }
@@ -100,7 +104,7 @@ void XBEScanner::threadMain(XBEScanner* scanner) {
 
 XBEScanner::QueueItem::QueueItem(std::string p, XBEScanner::Callback c) :
     path(std::move(p)), callback(std::move(c)) {
-  xbeData.resize(SECTORSIZE);
+  xbeData.resize(SECTORSIZE * 4);
 }
 
 XBEScanner::QueueItem::~QueueItem() {
@@ -202,6 +206,7 @@ void XBEScanner::QueueItem::scan(bool allowCache) {
     results.clear();
     scanStart = std::chrono::steady_clock::now();
     if (!openDir()) {
+      InfoLog::outputLine(InfoLog::INFO, "Failed to open directory %s", path.c_str());
       callback(false, results, millisSince(scanStart));
       return;
     }
@@ -246,23 +251,61 @@ void XBEScanner::QueueItem::processFile(const std::string& xbePath) {
 #ifdef NXDK
   FILE* xbeFile = fopen(xbePath.c_str(), "rb");
   if (!xbeFile) {
+    InfoLog::outputLine(InfoLog::INFO, "Failed to open file %s", xbePath.c_str());
     return;
   }
 
-  size_t read_bytes = fread(xbeData.data(), 1, SECTORSIZE, xbeFile);
+  size_t read_bytes;
+  if (fread(xbeData.data(), SECTORSIZE, 1, xbeFile) != 1) {
+    InfoLog::outputLine(InfoLog::INFO, "Failed to read file %s", xbePath.c_str());
+    return;
+  }
+  read_bytes = SECTORSIZE;
+
   auto xbe = (PXBE_FILE_HEADER)xbeData.data();
   if (xbe->SizeOfHeaders > read_bytes) {
     if (xbeData.size() < xbe->SizeOfHeaders) {
-      xbeData.resize(xbe->SizeOfHeaders);
+      xbeData.reserve(xbe->SizeOfHeaders);
     }
     read_bytes += fread(&xbeData[read_bytes], 1, xbe->SizeOfHeaders - read_bytes, xbeFile);
   }
-  if (xbe->Magic != XBE_TYPE_MAGIC || xbe->ImageBase != XBE_DEFAULT_BASE
-      || xbe->ImageBase > (uint32_t)xbe->CertificateHeader
-      || (uint32_t)xbe->CertificateHeader + 4 >= (xbe->ImageBase + xbe->SizeOfHeaders)
-      || xbe->SizeOfHeaders > read_bytes) {
+
+  if (xbe->Magic != XBE_TYPE_MAGIC) {
+    fclose(xbeFile);
+    InfoLog::outputLine(InfoLog::INFO, "File is not an XBE (bad magic 0x%X != 0x%X) %s",
+                        xbe->Magic, XBE_TYPE_MAGIC, xbePath.c_str());
     return;
   }
+
+  if (xbe->ImageBase != XBE_DEFAULT_BASE) {
+    fclose(xbeFile);
+    InfoLog::outputLine(InfoLog::INFO, "File is not an XBE (bad image base) %s",
+                        xbePath.c_str());
+    return;
+  }
+
+  if (xbe->ImageBase > (uint32_t)xbe->CertificateHeader) {
+    fclose(xbeFile);
+    InfoLog::outputLine(InfoLog::INFO, "File is not an XBE (image base > cert header) %s",
+                        xbePath.c_str());
+    return;
+  }
+
+  if ((uint32_t)xbe->CertificateHeader + 4 >= (xbe->ImageBase + xbe->SizeOfHeaders)) {
+    fclose(xbeFile);
+    InfoLog::outputLine(InfoLog::INFO,
+                        "File is not an XBE (cert header > image base + soh) %s",
+                        xbePath.c_str());
+    return;
+  }
+
+  if (xbe->SizeOfHeaders > read_bytes) {
+    fclose(xbeFile);
+    InfoLog::outputLine(InfoLog::INFO, "File is not an XBE (soh > read_bytes) %s",
+                        xbePath.c_str());
+    return;
+  }
+
   auto xbeCert =
       (PXBE_CERTIFICATE_HEADER)&xbeData[(uint32_t)xbe->CertificateHeader - xbe->ImageBase];
 
