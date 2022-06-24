@@ -30,16 +30,7 @@ SRCS += \
 	$(SRCDIR)/wipeCache.cpp \
 	$(SRCDIR)/xbeLauncher.cpp \
 	$(SRCDIR)/xbeScanner.cpp \
-	$(CURDIR)/pbkit-sdl-gpu/color_combiner.cpp \
-	$(CURDIR)/pbkit-sdl-gpu/debug_output.cpp \
-	$(CURDIR)/pbkit-sdl-gpu/math3d.c \
-	$(CURDIR)/pbkit-sdl-gpu/pbkit_sdl_gpu.cpp \
-	$(CURDIR)/pbkit-sdl-gpu/precalculated_vertex_shader.cpp \
-	$(CURDIR)/3rdparty/swizzle.c \
 	$(CURDIR)/3rdparty/SDL_FontCache/SDL_FontCache.c
-
-SHADER_OBJS = \
-	$(CURDIR)/pbkit-sdl-gpu/precalculated_vertex_shader.inl
 
 NXDK_DIR ?= $(CURDIR)/../nxdk
 NXDK_SDL = y
@@ -49,8 +40,8 @@ NXDK_DISABLE_AUTOMOUNT_D = y
 
 GEN_XISO = ${XBE_TITLE}.iso
 
-CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -Wall -Wextra -std=gnu++11 -I$(SDL_GPU_DIR)/include -I$(CURDIR)/pbkit-sdl-gpu -DFC_USE_SDL_GPU
-CFLAGS   += -std=gnu11 -I$(SDL_GPU_DIR)/include  -I$(CURDIR)/pbkit-sdl-gpu -DFC_USE_SDL_GPU
+CXXFLAGS += -I$(CURDIR) -I$(INCDIR) -Wall -Wextra -std=gnu++11 -I$(SDL_GPU_DIR)/include -I$(CURDIR)/3rdparty/pbkit-sdl-gpu -DFC_USE_SDL_GPU
+CFLAGS   += -std=gnu11 -I$(SDL_GPU_DIR)/include  -I$(CURDIR)/3rdparty/pbkit-sdl-gpu -DFC_USE_SDL_GPU
 
 ifneq ($(DEBUG),y)
 CFLAGS += -O2
@@ -66,7 +57,7 @@ CLEANRULES = clean-resources clean-gl
 include $(NXDK_DIR)/Makefile
 
 override SDL_GPU_DIR := 3rdparty/sdl-gpu
-include pbkit-sdl-gpu/Makefile.inc
+include 3rdparty/pbkit-sdl-gpu/Makefile.inc
 
 RESOURCES = \
 	$(OUTPUT_DIR)/config.json \

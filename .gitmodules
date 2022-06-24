@@ -7,3 +7,6 @@
 [submodule "3rdparty/sdl-gpu"]
 	path = 3rdparty/sdl-gpu
 	url = https://github.com/grimfang4/sdl-gpu.git
+[submodule "3rdparty/pbkit-sdl-gpu"]
+	path = 3rdparty/pbkit-sdl-gpu
+	url = https://github.com/abaire/pbkit-sdl-gpu.git
