@@ -61,11 +61,16 @@ include 3rdparty/pbkit-sdl-gpu/Makefile.inc
 
 RESOURCES = \
 	$(OUTPUT_DIR)/config.json \
-	$(patsubst $(CURDIR)/Resources/%,$(OUTPUT_DIR)/%,$(wildcard $(CURDIR)/Resources/NeXThemes/*))
+	$(patsubst $(CURDIR)/Resources/%,$(OUTPUT_DIR)/%,$(wildcard $(CURDIR)/Resources/NeXThemes/*)) \
+	$(patsubst $(CURDIR)/Resources/%,$(OUTPUT_DIR)/%,$(wildcard $(CURDIR)/Resources/NeXData/*))
 TARGET += $(RESOURCES)
 $(GEN_XISO): $(RESOURCES)
 
 $(OUTPUT_DIR)/NeXThemes/%: $(CURDIR)/Resources/NeXThemes/%
+	$(VE)mkdir -p '$(dir $@)'
+	$(VE)cp -r '$<' '$@'
+
+$(OUTPUT_DIR)/NeXData/%: $(CURDIR)/Resources/NeXData/%
 	$(VE)mkdir -p '$(dir $@)'
 	$(VE)cp -r '$<' '$@'
 

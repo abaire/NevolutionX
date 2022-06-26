@@ -48,6 +48,8 @@ int main(void) {
 
   InfoLog::configure(config);
 
+  InfoLog::outputLine(InfoLog::INFO, "Initializing subsystems...");
+
   int init = init_systems(config);
   if (init) {
     shutdown_systems(init);
